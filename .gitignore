@@ -1,0 +1,30 @@
+
+# Dependencies
+node_modules/
+
+# Environment variables and credentials
+.env
+.env.*
+!.env.example
+credentials.json
+secrets.json
+*.pem
+*.key
+
+# BiliFish local data
+state.json
+bili-fish-data/
+backups/
+
+# Logs and temporary files
+*.log
+*.tmp
+coverage/
+.nyc_output/
+
+# IDE and operating system
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+  
