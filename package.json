@@ -6,7 +6,8 @@
   "type": "module",
   "main": "lib/index.js",
   "exports": {
-    ".": "./lib/index.js"
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js"
   },
   "files": [
     "lib",
