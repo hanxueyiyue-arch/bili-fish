@@ -38,3 +38,11 @@
 - 自动日记只引用本次观察到的公开标题和主题，不生成虚构观看体验。
 - 生物学拟真系数是经验型参数，不应当作经过心理学研究验证的记忆模型。
 - 未提供任何 B站账户的操作权限。
+
+## V0.2.1 配置与取消处理
+
+`defaultRoutine` 来自插件 Schema 配置，经 `apply()` 传入 `lifeSummary()`、`developFromObservation()` 和 `registerDashboard()`。只有 `life` 不存在或 `routine` 缺失时才使用配置默认值；原已持久化的用户作息优先。
+
+`readPublicVideo()` 在 `view`、`comments`、持久化前检查 AbortSignal；独立的取消错误直接抛出。`updateState(...,{signal})` 在最终的原子 rename 前检查取消，避免将已取消的请求认定为成功操作；提交完成后无法撤销既有磁盘状态。
+
+对于测试数据：新记录必须有 `memory.kind=test` 或 `isTest=true`，只有 V0.1 已知教学示例可以经过完整字段精确匹配清理。历史列表限制（100 条观察、80 条经历）仍在，长期归档未实现。

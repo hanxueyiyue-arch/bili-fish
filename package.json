@@ -1,6 +1,6 @@
 {
   "name": "dsh-bili-fish",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "BiliFish B站养鱼插件：自主生活、兴趣成长、BrainMem 仿生记忆、日记及可视化养成",
   "type": "module",

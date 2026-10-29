@@ -1,4 +1,4 @@
-# BiliFish V0.2.0 — 在 B 站养一条会成长的小鱼
+# BiliFish V0.2.1 — 官方 DeepSeek Harness 兼容修复版
 
 在 **已经通过 DeepSeek 官方 Harness（desktop profile）V0.1.1 核心功能验证** 的 BiliFish 源码上升级的版本：保留已有工具、数据与 DSH「设置 → BiliFish · 小鱼」面板，加入**自主作息、兴趣成长、观察记忆、元数据日记、BrainMem B 型联想记忆**和成长轨迹。
 
@@ -20,7 +20,7 @@
 
 ## 兼容性及数据迁移
 
-- `package.json` 为 `dsh-bili-fish@0.2.0`；保留 `exports["."]`、`exports["./client"]`，保留相同 `settings.section` 挂载点和原有路由。
+- `package.json` 为 `dsh-bili-fish@0.2.1`；保留 `exports["."]`、`exports["./client"]`，保留相同 `settings.section` 挂载点和原有路由。
 - **`state.json` 的 version 保持 1**。旧 `bornAt`、`observations`、`memories`、`diary`、`drafts`、`quota`、`automation`、`activity` 原样保留。新增 `life` 数据采用懒初始化；只读状态不会强制改写硬盘。
 - 旧版 `bili_fish_recall` 的 `readOnly` 行为不变；BrainMem 是独立的新工具，不替代原检索逻辑。
 - 原有 11 个工具继续存在，新增 6 个工具，总共 **17 个**。
@@ -89,7 +89,7 @@ dsh plugin --profile desktop add 'https://github.com/hanxueyiyue-arch/bili-fish/
 
 ## 版本测试与限制
 
-运行：`node --test`。测试仅使用合成的 B站元数据，自动创建临时目录，不访问网络，不写用户生产 `state.json`。本次修复版保留原有 20 项测试，并新增 7 项桌面鉴权/CSRF 的回归测试；已在 Node.js 22.16.0 运行，27/27 通过。**官方 DeepSeek Harness 的真实客户端、设置页面交互和定时执行仍需在你的 Windows 环境验收**。
+运行：`node --test`。测试仅使用合成的 B站元数据，自动创建临时目录，不访问网络，不写用户生产 `state.json`。本次修复版保留原有 27 项测试，并新增 9 项作息初始化、请求取消和测试数据精确识别的回归测试；已在 Node.js 22.16.0 运行，36/36 通过。**官方 DeepSeek Harness 的真实客户端、设置页面交互和定时执行仍需在你的 Windows 环境验收**。
 
 此版本的规则式成长是可控的自主模拟，**没有实现无人监管的 LLM 长链推理**。如果将来需要基于大模型自主写作或选择行为，应在用户明示同意后接入受限代理，并专门审查提示注入、费用和发送权限。具体算法与迁移设计见 `docs/architecture.md`。
 
@@ -106,3 +106,18 @@ dsh plugin --profile desktop add 'https://github.com/hanxueyiyue-arch/bili-fish/
 - 若仍出现 403/503，**不要关闭 Harness 的鉴权或信任机制**。请收集接口返回状态和错误消息。此版本尚未在你的官方 Harness 实例中完成真实 UI 操作验收。
 
 参考： [DeepSeek Harness 官方 Desktop 文档](https://github.com/deepseek-ai/deepseek-harness/blob/master/apps/desktop/README.md)（桌面入口 `dsh-app://app/`）、[官方 HTTP Server 文档](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/web-server.md)（Electron 与 HTTP 网关差异）。
+
+
+## V0.2.1 补丁：在 V0.2.0 官方 Harness 版上修复
+
+- **首次初始化作息**：当尚未产生 `life` 数据时，插件 `timeZone`、`wakeHour`、`sleepHour` 的配置会贯穿状态工具、仪表盘、手动观察、自动探索及首次创建的生活记录；**已经保存在 `state.json` 中的个性化作息保持优先**。仅改变插件配置不会悄悄覆盖既有用户选择。
+- **取消手动读取视频**：中止信号或 `AbortError` 不再当成普通评论错误继续保存观察；原子写入在最终 rename 前检查中止。已经实际完成提交的操作不能事后撤销，不能把“停止”视为历史记录回滚。
+- **测试清理避免误判**：新记忆用 `kind=test`、新日记/草稿用 `isTest=true` 显式标记。除精准匹配的三条 V0.1 教程示例外，不再凭“标题里有测试”“正文含蓝色珊瑚”等宽松条件将普通记录列为可删除。执行删除仍需 ID + `DELETE_TEST_DATA` 且自动备份。
+- **保留控制接口安全**：使用官方 Harness 连接鉴权 + CSRF 令牌；无法替代宿主实际运行验收。
+- **变更范围**：状态格式仍为 `version: 1`；未删除既有记录；无新增外部运行依赖、安装钩子或自动外发接口。版本升级到 `0.2.1`，以便辨别安装缓存中的旧 0.2.0 构建。
+
+### V0.2.1 旧数据兼容性注意
+
+旧的 V0.1 教程测试记录会继续被精准识别。新建测试日记和草稿时必须主动传 `isTest=true`；一般记录不会因为文字碰巧出现“测试”而被清理。
+
+近期观察仍只保留 100 条、近期经历仍只保留 80 条；**长期冷数据归档尚未实现**，计划留给后续版本，不应把这两个最近记录列表当作永久历史归档。

@@ -22,6 +22,7 @@ test('查询匹配本身不会修改记忆对象', () => {
 
 test('只允许删除标记明确的测试数据，且删除前备份', async () => {
   const m=newMemory({title:'V0.1测试-蓝色珊瑚',content:'这是一条测试记忆。'});
+  m.kind='test';
   const real=newMemory({title:'正式记忆',content:'保留内容'});
   await updateState(s=>{s.memories.push(m,real);});
   let before=await readState();
