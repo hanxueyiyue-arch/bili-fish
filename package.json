@@ -1,8 +1,8 @@
 {
   "name": "dsh-bili-fish",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "private": true,
-  "description": "BiliFish B站养鱼插件：自主生活、兴趣成长、BrainMem 仿生记忆、日记及可视化养成",
+  "description": "BiliFish for official DeepSeek Harness: autonomous public Bilibili exploration, BrainMem V2 layered memory, bounded retrieval and safe archives",
   "type": "module",
   "main": "lib/index.js",
   "exports": {

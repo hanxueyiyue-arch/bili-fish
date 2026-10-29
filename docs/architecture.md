@@ -46,3 +46,16 @@
 `readPublicVideo()` 在 `view`、`comments`、持久化前检查 AbortSignal；独立的取消错误直接抛出。`updateState(...,{signal})` 在最终的原子 rename 前检查取消，避免将已取消的请求认定为成功操作；提交完成后无法撤销既有磁盘状态。
 
 对于测试数据：新记录必须有 `memory.kind=test` 或 `isTest=true`，只有 V0.1 已知教学示例可以经过完整字段精确匹配清理。历史列表限制（100 条观察、80 条经历）仍在，长期归档未实现。
+
+
+## V0.3 BrainMem V2：四层记忆与预算检索
+
+- `lib/brainmem-v2.js`: `memoryLayer` 对旧记录进行只读层级推断，支持情景 / 语义 / 自传 / 偏好；`buildMemoryIndex` 在内存构建倒排表（词项 → 记录 ID）及局部频率/文档频率，`searchIndex` 使用轻量 BM25 风格排序；有限词表扩展不能代替完整语义模型。
+- `compactContext` 按实际序列化的紧凑 JSON 字符总数封顶，返回 `id, title, layer, source, recallLevel, excerpt`；`maxTokens` 作为保守字符预算，非精确 Token 计量。只返回部分证据，原始记忆仍留本地。
+- `brainmem.js` 原有双尺度遗忘保留；两跳联想从全部两两对比改为最多 12 个关键词相关 seed 的有界传播。复杂度更低，但并不保证语义召回总是准确。
+- `lib/memory-archive.js`: 按 UUID 逐条复制为独立原文 JSON；在 `updateState()` 原子写事务中核验副本，再从活跃数组移除，且自动完整备份原状态。它是**显式归档**，没有自动整理或删除。每次只处理最多 25 条。
+- 查询档案先加载至内存并用 UUID 去重，然后建立索引。上限 5000 条归档；当前没有 SQLite/FTS 的磁盘级持久索引，也没有 LLM embedding，作为 V0.4+ 的扩展方向。
+- `state.json` 的 version 继续为 1；原有自动浏览/作息/活动历史不会在只读访问时强制迁移。人工核实的重组记忆另存时标注 `layer: semantic`。
+- 注意原 `observations.slice(-100)`、`life.experiences.slice(-80)` 仍是滚动窗口，不等于长期归档，本版只对 `memories` 提供用户选择的归档。
+
+- 如果恢复后的记忆被强化，重新归档会保留先前的归档历史版本，避免静默覆盖不同证据内容。历史文件不会参与当前记忆检索，但仍需纳入备份和隐私管理。
