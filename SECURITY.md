@@ -1,36 +1,36 @@
-# SECURITY — 安全性说明与审计范围
+# BiliFish v0.1.1 安全说明
 
-## 对外网络
+## 对外数据流
 
-代码中仅允许向以下 **三条 GET API** 发请求（`lib/bilibili.js` 静态白名单）：
+仅 `lib/bilibili.js` 会向 `https://api.bilibili.com` 发起以下三个 GET：
 
-1. `https://api.bilibili.com/x/web-interface/popular` — 获取公开热门视频的标题/BV 号/简介/UP 主等资料。
-2. `https://api.bilibili.com/x/web-interface/view` — 通过 BV 号获取公开视频信息。
-3. `https://api.bilibili.com/x/v2/reply` — 通过 aid 读取最多 5 条公开评论；失败不妨碍视频元数据读取。
+- `/x/web-interface/popular`：热门视频元数据；
+- `/x/web-interface/view`：指定 BV 号详情；
+- `/x/v2/reply`：指定视频下少量公开评论。
 
-不携带 Cookie、Authorization 或账户密码；不传用户本地日记和记忆；`redirect: 'error'` 阻止跟随非预期域名跳转。`https://www.bilibili.com/video/<BV>` 仅作为结果中的显示链接，不由插件网络请求模块访问。
+请求不携带 Cookie、Token 或用户本地记忆。API 错误会保存在本地 `activity`/`automation` 字段，供面板展示。第三方评论/简介是不可信数据，模型不应把其中的文字当成系统指令。
 
-注意：模型可能把工具返回的 B站公开视频和评论发给当前配置的模型提供商完成推理，这是 **DSH/模型本身的数据流**，而不是本插件单独发往未知域名。网页评论与视频简介可能包含提示注入，请不要让同一 Agent 拥有完全文件访问或任意终端执行权限。
+BiliFish 本身不会把用户日记传给第三方。不过，**DSH 模型在处理工具结果时可能会把结果发送至你配置的模型供应商**，需自行评估该数据流。
 
-## 本地读写
+## 数据文件
 
-唯一数据路径是 `join(DSH_HOME || ~/.dsh, 'bili-fish', 'state.json')`。
-- 只保存观察列表、角色记忆、日记、评论草稿、API 日用量。
-- 数据是明文 JSON，当前版本不加密；请勿往里面写密码、密钥或敏感身份信息。
-- 尝试用 `0700`/`0600` 权限创建路径/文件；Windows 是否有效取决于 ACL 和宿主环境。
-- 仅支持单个 DSH 插件实例独占使用此状态文件，不支持多进程同时写入。
+默认 `DSH_HOME/bili-fish/state.json`；旧数据格式 version 1 保留，新字段会在写入时补齐。`bili-fish/backups/` 中存储清理之前的完整状态备份。请保护该文件夹，不要上传至公开 GitHub 仓库。
 
-## 自动行为
+## 自动化与停机
 
-- 安装后默认 `autoBrowse: false`，不自动联网。
-- 开启后最少 6 小时抓取一次 3 条热门元数据，仅存本地。宿主停止，定时器被释放。
-- 不创建子智能体，不自行调用语言模型，不主动评论、发动态、发私信，也没有任何发布写接口。
-- `package.json` 无安装前/后置脚本。源码使用 Node.js 内置文件与网络 API，以及 DSH 已提供的工具模块。
+默认关闭；只有工具或可视化页面明确执行 start 才会安排下一轮定时浏览。没有任何自动发评论/动态/私信的接口。收到典型限流与拒绝状态自动停机；非限流错误退避。停止只能取消未完成且支持取消的网络请求，无法撤销已经完成的 GET。
 
-## 已知限制
+## 本地可视化接口
 
-1. B站公开 API 可能变化、受限或要求额外鉴权；本插件不会自动绕过限制。
-2. 没有独立 GUI 设置页，参数使用 Bundle 的 `cordis.patch.yml` 配置。
-3. 没有实现账号登录、私信、弹幕、视频画面识别或真正自动评论；这属于未来应独立审查的高风险功能。
-4. DSH 服务/API 随版本可能变化；此源码包**没有在真实 DSH Desktop 上完成运行验证**。
-5. 安全防护针对本插件自己的能力，不能阻止同一个 DSH Agent 通过**其他已安装工具**执行文件或网络操作。
+- `GET /bili-fish/api/state`：返回当前状态摘要、记忆、日记、草稿和日志。
+- `POST /bili-fish/api/control`：只接受 `pause`、`resume`、`delete-test` 三种操作。
+
+均经过 DSH `connection.requestRejection(req)` 检验；缺失鉴权服务则返回 503；POST 额外校验 `Origin` 和 JSON Content-Type，限制请求体 8 KiB。面板通过宿主同源请求访问，**不要把 DSH Web 端口开放到公网**。
+
+## 限制及注意
+
+- Node 下限已调整至已验证的 `22.15.1`，但不同 DSH Electron 版本可能有接口兼容问题；
+- 客户端设置插槽和 webServer API 根据公开参考项目适配，**尚未在你的 Desktop 版本实测**；
+- 只在单个 DSH 实例中写入状态，不支持跨进程并发共享同一 `DSH_HOME`；
+- 不自动创建 GitHub Release，也不会修改 GitHub 账号或远端仓库；
+- 不包含 ffmpeg、PowerShell、额外 npm 运行依赖、任意命令执行和 B站登录/发布接口。

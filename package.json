@@ -1,14 +1,36 @@
 {
   "name": "dsh-bili-fish",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
-  "description": "安全、只读、可选定时的 DSH B站养鱼插件",
+  "description": "BiliFish B站养鱼插件：可视化面板、只读回忆、审计日志、受控自动浏览",
   "type": "module",
   "main": "lib/index.js",
-  "exports": { ".": "./lib/index.js" },
-  "files": ["lib", "cordis.patch.yml", "README.md", "SECURITY.md"],
-  "engines": { "node": ">=22.19.0" },
-  "scripts": { "test": "node --test" },
-  "dsh": { "bundle": { "patch": "./cordis.patch.yml" } },
-  "license": "MIT"
+  "exports": {
+    ".": "./lib/index.js"
+  },
+  "files": [
+    "lib",
+    "tests",
+    "cordis.patch.yml",
+    "README.md",
+    "SECURITY.md",
+    "NOTICE.md"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [],
+      "platform": "web"
+    }
+  },
+  "license": "MIT",
+  "packageManager": "pnpm@11.28.5"
 }
