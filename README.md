@@ -1,105 +1,108 @@
-# BiliFish v0.1.1 — B站 AI 小鱼（DSH 插件）
+# BiliFish V0.2.0 — 在 B 站养一条会成长的小鱼
 
-一个独立实现的 DeepSeek Harness Bundle 插件。小鱼可以读取 B站公开热门视频信息、保留记忆、写私人日记、起草评论；V0.1.1 加入 **DSH 设置页可视化面板**、**默认只读回忆**、**测试记录安全清理**、**自动浏览控制与失败日志**。
+在 **已经通过 DeepSeek 官方 Harness（desktop profile）V0.1.1 核心功能验证** 的 BiliFish 源码上升级的版本：保留已有工具、数据与 DSH「设置 → BiliFish · 小鱼」面板，加入**自主作息、兴趣成长、观察记忆、元数据日记、BrainMem B 型联想记忆**和成长轨迹。
 
-> **修复版说明：** 补齐 `package.json` 的 `./client` 导出；`bili_fish_status.automaticBrowse` 读取持久化 `automation.enabled`；定时浏览在取消后不会再保存此次观察结果；修正 SECURITY.md 的 Node 声明，并添加回归检查。
+> **重要区分：** 本版的无人值守自主生活使用可检查的本地规则和 B 站公开元数据，不是在后台偷偷启动 LLM。其“心情”是软件状态标签，并不是意识或真实感受。它没有观看视频画面、播放声音或理解完整字幕。用户明确让 DSH Agent 写更丰富的日记时，可调用 `bili_fish_reflection_context` 获取有来源的线索，再由 Agent 撰写并在用户确认后写入。
 
-> **版本状态：** 源码静态检查及 11 项本地单元测试通过；**尚未在用户的 DSH Desktop 中实际运行此版本**。V0.1.0 曾在用户的 DSH Desktop 中成功运行，但新版页面 / API 需要单独验收。
+## 新版功能
 
-## 相对于 V0.1.0 的变化
-
-| 功能 | V0.1.1 |
+| 功能 | V0.2 行为 |
 | --- | --- |
-| `bili_fish_recall` | `readOnly` 默认 `true`：不修改 `recallCount`/`lastRecalledAt`；明确 `readOnly:false` 才强化记忆 |
-| Node 下限 | `>=22`：避免误排除已验证的 Node 22.15.1；不表示所有 22.x 小版本均已验证 |
-| pnpm 版本 | `packageManager: pnpm@11.28.5` 与本机 DSH 工具链对齐 |
-| 本地开发版本 | `.nvmrc` 为 `24.21.0`，与实际 Desktop 宿主一致，不限制插件运行时 |
-| 测试隔离 | `npm test` 或 `pnpm test` 会自动使用临时 `DSH_HOME`，不覆盖真实养鱼记录 |
-| 清理测试记录 | 新增 `bili_fish_cleanup_test`；`list` 预览，`delete` 按 ID 删除，仅匹配明确标记的测试数据；自动备份到 `bili-fish/backups/` |
-| 自动浏览 | 新增 `bili_fish_automation`：`status`、`start`、`stop`；启动后延迟完整周期，不自动唤醒模型。对 412/429/403 触发停机，其他错误退避后重试 |
-| 日志 | 新增 `bili_fish_logs`，本地保存最近 150 条活动，界面显示最近 80 条 |
-| 可视化界面 | DSH「设置」中尝试注册「BiliFish · 小鱼」，显示状态、记忆、日记、草稿、活动日志和自动浏览开关 |
+| 自主作息 | 用户设置时区、起床/休息小时；到定时浏览时间如果在休息时段，仅记录 `routine-rest` 日志并顺延一小时；不会联网 |
+| 自主探索 | 开启自动浏览后，从最多 5 条公开热门元数据中按兴趣、新颖程度与探索因子选最多 3 条；继续使用原版 6–48h 间隔、日配额、风控停机和手动停止 |
+| 兴趣成长 | 按标题和简介中的有限关键词推断兴趣；每次观察微调分数、记录最近 60 次兴趣快照；长期不接触的偏好逐渐回到中性 |
+| 心情与活力 | 兴趣命中后调整“好奇/兴致勃勃”等状态标签；经过时间恢复活力，探索消耗活力，低活力可能延长下一轮间隔 |
+| 自主记忆 | 仅**定时观察**时从有类别的元数据生成最多一条带 BV 来源的观察记忆；同 BV 去重，不冒充完整观看；旧记忆不被自动删除 |
+| 日记 | 每个生活日首次定时探索，依据真实返回的公开标题/来源生成至多一篇 `kind=auto-metadata` 的本地日记，不发 B 站 |
+| BrainMem | 双时间尺度遗忘 + 独立细节衰减；中英文短语检索 + 两跳标签唤醒；`brain_reconstruct` 仅生成未经核实候选，不写入状态 |
+| 人工核实 | `brain_confirm` 必须输入核实内容、旧记忆 ID 和明确口令；操作前备份并**另存**一条有来源的新版本，绝不覆盖原始记忆 |
+| 可视化 | DSH 原生控制台新增活力、心情、兴趣分数、兴趣历史、最近经历、作息时区与保存按钮；保留记忆、日记、草稿、日志和启动/停止 |
+
+## 兼容性及数据迁移
+
+- `package.json` 为 `dsh-bili-fish@0.2.0`；保留 `exports["."]`、`exports["./client"]`，保留相同 `settings.section` 挂载点和原有路由。
+- **`state.json` 的 version 保持 1**。旧 `bornAt`、`observations`、`memories`、`diary`、`drafts`、`quota`、`automation`、`activity` 原样保留。新增 `life` 数据采用懒初始化；只读状态不会强制改写硬盘。
+- 旧版 `bili_fish_recall` 的 `readOnly` 行为不变；BrainMem 是独立的新工具，不替代原检索逻辑。
+- 原有 11 个工具继续存在，新增 6 个工具，总共 **17 个**。
+- Node 要求 `>=22`，`packageManager` 为 `pnpm@11.28.5`，开发环境 `.nvmrc=24.21.0`。
+
+## 新增工具
+
+```
+bili_fish_life_status           不联网，查看小鱼作息/心情/活力/兴趣/经历
+bili_fish_routine               action=status 或 set（时区及起床、睡觉时间）
+bili_fish_brain_recall          只读模糊回忆、遗忘评分、两跳联想
+bili_fish_brain_reconstruct     只读生成未核实重组候选
+bili_fish_brain_confirm         人工确认后另存新版本记忆（原记录保留，自动备份）
+bili_fish_reflection_context    提供来源可追溯的线索，供当前 Agent 经用户请求撰写日记
+```
+
+### 典型使用方法
+
+在 DSH 对话框中：
+
+1. 「调用 `bili_fish_life_status`，告诉我小鱼的兴趣、心情和作息。」
+2. 「调用 `bili_fish_routine`，action=set，timeZone=Asia/Shanghai，wakeHour=9，sleepHour=23。」
+3. 「调用 `bili_fish_swim`，count=3，让小鱼积累一点兴趣。注意这只是公开视频信息，不代表看完内容。」
+4. 「调用 `bili_fish_brain_recall`，query=游戏，展示原始来源及回忆层级。」
+5. 「调用 `bili_fish_brain_reconstruct`，query=游戏；不要把重组当成事实。」
+6. 「我想让小鱼写一篇个性化日记。先调用 `bili_fish_reflection_context`，区分真实元数据和想象内容，生成**草稿供我确认**，不直接保存。」
+
+### 自主浏览启动
+
+**默认关闭。** 用户必须在 DSH 控制台点击「开启自动浏览」，或显式调用：
+
+```
+bili_fish_automation action=start
+```
+
+首次自动浏览仍需等待配置的完整间隔（默认 12 小时）；每分钟只检查**本地**计划。到期如果小鱼处于休息时段，顺延一小时，不访问 B 站。遇到 B站 HTTP 403 / 412 / 429 等限流情况立即关闭，需用户手动重新启用；其他错误会退避重试。停止操作 `action=stop` 会取消正在等待的可取消请求。
+
+作息支持 `Asia/Shanghai`、`Asia/Tokyo` 和 `UTC`，默认 09:00 起床、23:00 休息，默认时区 `Asia/Shanghai`。**请按实际所在地设置时区**。每日 API 配额依然按 UTC 日期重置（延续 V0.1.1 行为）。
 
 ## 安全边界
 
-- **不登录 B站，不读取 Cookie / SSH 密钥 / 浏览器登录信息。**
-- B站通信仅使用 `https://api.bilibili.com` 上三个白名单 GET 接口，拒绝重定向。
-- 不提供发送评论、私信、点赞、关注、投币、发布动态等接口。
-- 后台定时器始终只读本地状态；只有通过工具或设置页 **明确 start** 才会周期性访问 B站。
-- 不运行 shell、Node 子进程、ffmpeg、PowerShell；不创建子智能体。
-- 面板后端仅通过 DSH 同源接口提供，必须通过宿主 connection 的请求鉴权；没有鉴权服务时拒绝访问（fail-closed）。
-- 所有数据仍在 `DSH_HOME/bili-fish/state.json`，不会迁移或覆盖其他插件的数据。
+- 无 B站登录，无 Cookie、密码、API Key、浏览器凭据或 SSH 密钥读取。
+- 唯一的外部请求仍是 `https://api.bilibili.com` 的三个公开 GET API；没有评论、私信、点赞、关注、发布或投币接口；禁止 HTTP 重定向。
+- 不安装第三方运行时依赖、不新增 install/postinstall 钩子、不运行 shell / PowerShell / 子进程、不创建子 Agent。
+- 自动兴趣与日记 **仅使用公开元数据**；来源保留 BV 号和观察时间。未验证重组不会被保存成事实。
+- 数据都在 `DSH_HOME/bili-fish/state.json`，测试自动使用临时 DSH_HOME。状态写入仍采用临时文件 + rename；人确认的重组保存前会备份。原有旧记忆不会被自动删除，500 条容量限制时拒绝继续保存。
+- 管理 API 依赖官方 Harness connection 鉴权和每次插件启动随机生成的 CSRF 令牌（POST 请求需要）；不再要求 Electron 的 Origin 与 HTTP Host 一致。限制 JSON 请求体为 8 KiB；无鉴权或令牌错误均拒绝请求。不添加跨源 CORS 响应头。
+- B站标题、简介、评论是不可信外部文本，不能被用作系统指令。公开数据的关键词分类可能不准确；记忆“重要性”只是启发式估分。
 
-## 开发环境与运行环境
+## 安装升级（Windows 11 / 没有 Git）
 
-- Windows PATH 上的 `node`（先前实测 `22.15.1`）用于终端脚本、单元测试；DSH Desktop 宿主运行时由 Electron 提供（实测 `24.21.0`）。
-- `engines.node` 写为 `>=22` 是兼容性范围声明，已实测范围以测试报告为准，不能推断所有 Node 22.x 版本均通过验证。
-- `.nvmrc` 用于开发者选择 `24.21.0`，不会强制改变系统 Node，也不会更改 DSH 内置 Node。
-- `packageManager` 标明推荐 pnpm 版本；Corepack 等管理器可能按配置下载该版本，使用前请自行确认。
-- 在源码目录执行 `npm test` 或 `pnpm test`；测试自动创建并清理临时目录，不写入当前 DSH 的真实 `state.json`。
+先完全退出 **DeepSeek 官方 Harness Windows 客户端**（它使用 `desktop` profile），备份：
 
-## 安装升级 — Windows 11 / 无 Git
+- `D:\AI-Data\dsh-data\profiles\desktop` 整个文件夹（含 package.json 与 pnpm-lock.yaml）
+- `D:\AI-Data\dsh-data\bili-fish\state.json` 用户数据
 
-**先备份现有已验证版本及用户数据。** 备份时先停止 DSH，避免正在写入：
-
-- 已验证源码快照：保存原 V0.1.0 ZIP 和在 GitHub 上创建 `v0.1.0` tag；
-- 用户状态：复制 `D:\AI-Data\dsh-data\bili-fish\state.json` 至你自己控制的备份文件夹。
-
-将此压缩包**解压到项目目录**，再在 GitHub 的 `main` 分支根目录提交所有文件（特别是 `lib/client.js`、`lib/dashboard.js`、`lib/automation.js`）。不要上传用户 `state.json`、备份、凭据。
-
-GitHub 更新后，用你已验证过的 HTTPS tarball 安装方式：
+将本 ZIP **内部的文件**上传到 [GitHub 仓库](https://github.com/hanxueyiyue-arch/bili-fish) `main` 根目录，不要额外套 `BiliFish-v0.2/` 文件夹，不要上传真实 `state.json`。本地使用 `node --test` 测试后，因你已经确认 tarball 地址受 pnpm lockfile integrity 锁定，升级应先按 DSH 的 remove 流程移除旧依赖，再重新 add：
 
 ```powershell
-# 用正常 PowerShell；无需 Git
 $env:CI = 'true'
+dsh plugin --profile desktop remove dsh-bili-fish
 dsh plugin --profile desktop add 'https://github.com/hanxueyiyue-arch/bili-fish/tarball/main'
 ```
 
-`main` 可能变化，因此更稳妥的方式是先创建 `v0.1.1` tag 再从固定版本安装，或先将 ZIP 解压到本地目录并使用你已验证的 `link:` 安装模式。**上传仓库和创建 GitHub Release 需要仓库拥有者亲自在 GitHub 操作**，本包不代表已经推送到 GitHub。
+**先确认仓库更新成功再执行。** `remove/add` 会影响 Desktop profile，不能在正在执行重要任务时操作；数据目录不应在这一步被手动删除。重新打开官方 Harness 客户端并按 Ctrl+R 刷新，核对 17 个工具、旧数据计数、设置页和自动浏览开关。之后可使用固定 GitHub Release tag 替代可变的 `main`。
 
-更新后重载 DSH Desktop。先确认原有 8 个工具仍可用，再检查新增 3 个工具是否注册，最后打开「设置」寻找 **BiliFish · 小鱼**。**若面板显示 403/503，请勿关闭 DSH 信任栅栏来绕过**；收集 DSH 版本及日志，按宿主实际接口修正兼容性。
+## 版本测试与限制
 
-## 新工具用法
+运行：`node --test`。测试仅使用合成的 B站元数据，自动创建临时目录，不访问网络，不写用户生产 `state.json`。本次修复版保留原有 20 项测试，并新增 7 项桌面鉴权/CSRF 的回归测试；已在 Node.js 22.16.0 运行，27/27 通过。**官方 DeepSeek Harness 的真实客户端、设置页面交互和定时执行仍需在你的 Windows 环境验收**。
 
-```text
-调用 bili_fish_recall，query="珊瑚"，readOnly=true；确认回忆次数不变化。
-调用 bili_fish_recall，query="珊瑚"，readOnly=false；这次明确强化回忆。
-调用 bili_fish_cleanup_test，action="list"；先查看可清理记录。
-调用 bili_fish_cleanup_test，action="delete"，kind="draft"，id="<从 list 得到的 ID>"，confirmation="DELETE_TEST_DATA"。
-调用 bili_fish_automation，action="status"。
-调用 bili_fish_automation，action="start"；自动浏览只在 6～48 小时间隔到期后执行。
-调用 bili_fish_automation，action="stop"；暂停下一轮并取消当前可取消的网络请求。
-调用 bili_fish_logs；查看最近的本地活动。
-```
+此版本的规则式成长是可控的自主模拟，**没有实现无人监管的 LLM 长链推理**。如果将来需要基于大模型自主写作或选择行为，应在用户明示同意后接入受限代理，并专门审查提示注入、费用和发送权限。具体算法与迁移设计见 `docs/architecture.md`。
 
-### 数据兼容与清理
 
-旧 V0.1.0 的 `state.json` 保持 version 1。首次写入会补齐 `activity` 和 `automation` 字段，不删除已有记忆/日记/草稿。**删除指定测试数据前，插件在 `bili-fish/backups/` 自动保留完整旧状态**。清理仅针对测试内容具备明确标记的条目，不支持删除真实生活记录。
+## 官方 DeepSeek Harness 控制面板修复（V0.2.0 Harness fix）
 
-### 自动浏览机制
+原 V0.1.1 与 V0.2.0 控制面板的 `Origin === Host` 校验无法兼容部分官方 Electron `dsh-app://app/` 请求，点击「开启自动浏览」会提示 **Origin 不匹配**。本版在 **V0.2.0 完整功能代码** 上修复：
 
-- 默认关闭，只有显式启动才安排下一轮（不会启动即访问 B站）；
-- 每分钟检查一次本地计划，只在到期时抓取 3 条公开视频元数据；
-- 每次尝试记录 `automation-run` / `automation-success` / `automation-error` 等日志；
-- 遇到被拒绝或限流自动停机，必须再次人工启动；
-- 其他错误在 15/30/60/120/360 分钟逐级退避；
-- 停止后**不会**执行后续定时任务；被取消的尚未保存的观察结果不再写入本地；若请求已经完成则无法追回已经产生的公开 GET 请求。
+- 仍然先执行 `connection.requestRejection(req)` 宿主鉴权；鉴权模块不存在时拒绝请求（503）。
+- 已授权的 `GET /bili-fish/api/state` 返回 64 位十六进制的每次启动随机 CSRF 令牌，令牌只存于当前进程内存，不写到 `state.json`、URL 或日志。
+- 客户端使用 `X-Bili-Fish-CSRF` 请求头提交令牌，控制、作息修改、测试数据清理等 **全部 POST 操作** 均需要令牌。错误令牌返回 403；界面会提示刷新再试，不会自动重放危险操作。
+- 为适配官方 Harness 桌面 IPC，移除了 Origin/Host 字符串相等的要求。**这不是取消安全校验**：令牌、宿主鉴权、无跨域 CORS、JSON 限制及请求体大小限制仍然生效。
+- 首次加载控制台或插件重新加载后，请在官方 Harness 界面按 `Ctrl+R`，然后测试「刷新状态 → 开启自动浏览 → 立即停止」。开启后默认延迟完整周期才进行首次访问，不会立刻发 B 站请求。
+- 若仍出现 403/503，**不要关闭 Harness 的鉴权或信任机制**。请收集接口返回状态和错误消息。此版本尚未在你的官方 Harness 实例中完成真实 UI 操作验收。
 
-### 配额日期说明
-
-每日请求额度采用 **UTC 日期**，因此在北京时间每天 **08:00** / 日本时间 **09:00** 更新当日计数。这是 V0.1 已有行为，本版保持兼容；如果未来改成本地午夜，会作为单独的可配置改动。
-
-### 可视化界面
-
-参考 `dsh-bili-whale` 原生设置页的**公开扩展接口思路**：通过 DSH 的 `settings.section` 插槽挂载 React 页面；通过 `ctx.webServer.register()` 暴露同源、鉴权的本地 API。实现代码为 BiliFish 自己编写。页面不需要额外的公网服务、Node 运行命令或外部脚本。
-
-可视化面板是否在你当前 DSH 版本出现，必须通过桌面版实测。若宿主客户端接口变更，**核心 11 个工具仍是主要兼容目标**。
-
-## 发布到 GitHub
-
-1. 在仓库创建 tag `v0.1.0` 指向已验证的旧版提交，并创建 Release（标题：`BiliFish v0.1.0 — tested baseline`）。
-2. 将 V0.1.1 文件提交到 `main`，不要覆盖用户状态文件。
-3. 等 DSH Desktop 实测 UI、只读检索和暂停功能后，创建 tag `v0.1.1`、GitHub Release，并附上 ZIP 作为 Source archive 之外的安装包。
-4. 不要直接依赖可变的 `main` 作为长期生产版本；需要回退时可安装固定 tag 的 tarball。
-
-原版参考项目：[Alterssss/dsh-bili-whale](https://github.com/Alterssss/dsh-bili-whale)（MIT）。本插件借鉴其设计模块划分和 DSH 原生设置扩展方式，不直接移植其账号登录、自动发布、私信或命令执行实现。详情见 `NOTICE.md`。
+参考： [DeepSeek Harness 官方 Desktop 文档](https://github.com/deepseek-ai/deepseek-harness/blob/master/apps/desktop/README.md)（桌面入口 `dsh-app://app/`）、[官方 HTTP Server 文档](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/web-server.md)（Electron 与 HTTP 网关差异）。

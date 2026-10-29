@@ -24,5 +24,6 @@ test('自动浏览状态以持久化 state 为准，而非遗留配置项', () =
 test('状态工具使用持久化开关且手动停止后不会继续记录已取消的观察', async () => {
   const source = await readFile(resolve(root, 'lib/index.js'), 'utf8');
   assert.match(source, /automaticBrowse:\s*isAutomationEnabled\(state\)/);
-  assert.match(source, /const videos = await client\.popular\(count, signal\);\s*if \(signal\?\.aborted\) throw/);
+  assert.match(source, /const candidates = await client\.popular\(/);
+  assert.match(source, /if \(signal\?\.aborted\) throw/);
 });

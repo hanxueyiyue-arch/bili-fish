@@ -1,8 +1,8 @@
 {
   "name": "dsh-bili-fish",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "private": true,
-  "description": "BiliFish B站养鱼插件：可视化面板、只读回忆、审计日志、受控自动浏览",
+  "description": "BiliFish B站养鱼插件：自主生活、兴趣成长、BrainMem 仿生记忆、日记及可视化养成",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
@@ -15,7 +15,9 @@
     "cordis.patch.yml",
     "README.md",
     "SECURITY.md",
-    "NOTICE.md"
+    "NOTICE.md",
+    "docs",
+    "CHANGELOG.md"
   ],
   "engines": {
     "node": ">=22"
