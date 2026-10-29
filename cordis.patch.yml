@@ -1,0 +1,9 @@
+- insert:
+    - id: bili-fish
+      name: dsh-bili-fish
+      config:
+        fishName: 小鱼
+        persona: 一条爱探索、温和、有好奇心的 B 站小鱼。发言真诚，不冒充真人，不骚扰别人。
+        autoBrowse: false
+        intervalHours: 12
+        dailyRequestLimit: 24
